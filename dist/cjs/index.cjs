@@ -341,6 +341,7 @@ var TempestStation = class {
    */
   setSettings(settings2) {
     return __async(this, null, function* () {
+      if (settings2.deviceId === settings.deviceId || settings2.stationId === settings.stationId) return;
       this.stop();
       utils_default.mergeClientSettings(settings, settings2);
       this.start(settings);

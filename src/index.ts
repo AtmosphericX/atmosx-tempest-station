@@ -35,6 +35,7 @@ export class TempestStation {
      * @returns {Promise<void>}
      */
     public async setSettings(settings: types.ClientSettingsTypes) {
+        if (settings.deviceId === loader.settings.deviceId || settings.stationId === loader.settings.stationId) return;
         this.stop();
         Utils.mergeClientSettings(loader.settings, settings);
         this.start(loader.settings);
