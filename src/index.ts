@@ -115,7 +115,7 @@ export class TempestStation {
             if (type == `rapid_wind`) Handler.rapidWindHandler(data)
             if (type == `evt_strike`) Handler.lightningHandler(data)
         })
-        this.websocket.on('error', err => {
+        this.websocket.on('error', (error: any) => {
             Utils.warn(loader.definitions.messages.api_failed, true)
         })
     }

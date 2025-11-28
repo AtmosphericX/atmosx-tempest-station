@@ -434,7 +434,7 @@ var TempestStation = class {
         if (type == `rapid_wind`) handler_default.rapidWindHandler(data);
         if (type == `evt_strike`) handler_default.lightningHandler(data);
       }));
-      this.websocket.on("error", (err) => {
+      this.websocket.on("error", (error) => {
         utils_default.warn(definitions.messages.api_failed, true);
       });
     });
