@@ -42,7 +42,10 @@ export class Handler {
                         time: data.obs[0][0],
                         wind_average: parseFloat((data.obs[0][2] * 2.23694).toFixed(2)),
                         wind_gust: parseFloat((data.obs[0][3] * 2.23694).toFixed(2)),
-                        wind_direction: data.obs[0][4],
+                        wind_direction: loader.definitions.cardinal_direction_degrees ? Object.keys(loader.definitions.cardinal_direction_degrees).find(dir => {
+                            const [min, max] = loader.definitions.cardinal_direction_degrees[dir as keyof typeof loader.definitions.cardinal_direction_degrees];
+                            return data.obs[0][4] >= min && data.obs[0][4] < max;
+                        }) : data.obs[0][4],
                         temperature: parseFloat(((data.obs[0][7] * 9/5) + 32).toFixed(2)),
                         humidity: data.obs[0][8],
                     }
@@ -76,7 +79,10 @@ export class Handler {
                     pressure_trend: data.message.current_conditions.pressure_trend,
                     wind_average: data.message.current_conditions.wind_avg,
                     wind_gust: data.message.current_conditions.wind_gust,
-                    wind_direction: data.message.current_conditions.wind_direction,
+                    wind_direction: loader.definitions.cardinal_direction_degrees ? Object.keys(loader.definitions.cardinal_direction_degrees).find(dir => {
+                        const [min, max] = loader.definitions.cardinal_direction_degrees[dir as keyof typeof loader.definitions.cardinal_direction_degrees];
+                        return data.message.current_conditions.wind_direction >= min && data.message.current_conditions.wind_direction < max;
+                    }) : data.message.current_conditions.wind_direction,
                     station_name: data.message.location_name,
                     elevation: data.message.elevation,
                 }
@@ -101,7 +107,10 @@ export class Handler {
                 properties: {
                     time: data.ob[0],
                     speed: data.ob[1],
-                    direction: data.ob[2],
+                    direction: loader.definitions.cardinal_direction_degrees ? Object.keys(loader.definitions.cardinal_direction_degrees).find(dir => {
+                        const [min, max] = loader.definitions.cardinal_direction_degrees[dir as keyof typeof loader.definitions.cardinal_direction_degrees];
+                        return data.ob[2] >= min && data.ob[2] < max;
+                    }) : data.ob[2],
                 }
             }]
         })
