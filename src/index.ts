@@ -66,58 +66,63 @@ export class TempestStation {
      * @returns {Promise<void>}
      */
     public async start(metadata: types.ClientSettingsTypes): Promise<void> {
-        Utils.mergeClientSettings(loader.settings, metadata);
-        const settings = loader.settings as types.ClientSettingsTypes
-        if (!settings?.api || !settings?.deviceId) return
-        const wsUrl =
-            `wss://ws.weatherflow.com/swd/data?api_key=${settings.api}` +
-            `&location_id=${settings.deviceId}&ver=tempest-20250728`
-        this.websocket = new loader.packages.ws(wsUrl)
-        this.websocket.on('open', async () => {
-            Utils.warn(`${loader.definitions.messages.websocket_established} @ ${settings.deviceId}/${settings.stationId}`, true)
-            loader.cache.events.emit(`onConnection`)
-            if (settings.stationId) {
-                const stationsUrl =
-                    `https://swd.weatherflow.com/swd/rest/stations/${settings.stationId}?api_key=${settings.api}`
-                const responseStations = await Utils.createHttpRequest(stationsUrl)
-                if (!responseStations.error) {
-                    const station = responseStations.message as Record<string, any>
-                    if (station && typeof station === 'object' && Array.isArray(station.stations) && station.stations[0]) {
-                        const s = station.stations[0]
-                        this.latitude = Number(s.latitude)
-                        this.longitude = Number(s.longitude)
+        try {
+            Utils.mergeClientSettings(loader.settings, metadata);
+            const settings = loader.settings as types.ClientSettingsTypes
+            if (!settings?.api || !settings?.deviceId) return
+            const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings.api}` + `&location_id=${settings.deviceId}&ver=tempest-20250728`
+            this.websocket = new loader.packages.ws(wsUrl)
+            this.websocket.on('open', async () => {
+                Utils.warn(`${loader.definitions.messages.websocket_established} @ ${settings.deviceId}/${settings.stationId}`, true)
+                loader.cache.events.emit(`onConnection`)
+                if (settings.stationId) {
+                    const stationsUrl =
+                        `https://swd.weatherflow.com/swd/rest/stations/${settings.stationId}?api_key=${settings.api}`
+                    const responseStations = await Utils.createHttpRequest(stationsUrl)
+                    if (!responseStations.error) {
+                        const station = responseStations.message as Record<string, any>
+                        if (station && typeof station === 'object' && Array.isArray(station.stations) && station.stations[0]) {
+                            const s = station.stations[0]
+                            this.latitude = Number(s.latitude)
+                            this.longitude = Number(s.longitude)
+                        }
                     }
-                }
-                if (this.websocket) {
-                    if (Number.isFinite(this.latitude) && Number.isFinite(this.longitude)) {
+                    if (this.websocket) {
+                        if (Number.isFinite(this.latitude) && Number.isFinite(this.longitude)) {
+                            this.websocket.send(JSON.stringify({
+                                type: "geo_strike_listen_start",
+                                lat_min: this.latitude - 5, lat_max: this.latitude + 5,
+                                lon_min: this.longitude - 5, lon_max: this.longitude + 5
+                            }))
+                        }
                         this.websocket.send(JSON.stringify({
-                            type: "geo_strike_listen_start",
-                            lat_min: this.latitude - 5, lat_max: this.latitude + 5,
-                            lon_min: this.longitude - 5, lon_max: this.longitude + 5
+                            type: "listen_start", device_id: settings.deviceId
+                        }))
+                        this.websocket.send(JSON.stringify({
+                            type: "listen_rapid_start", device_id: settings.deviceId
                         }))
                     }
-                    this.websocket.send(JSON.stringify({
-                        type: "listen_start", device_id: settings.deviceId
-                    }))
-                    this.websocket.send(JSON.stringify({
-                        type: "listen_rapid_start", device_id: settings.deviceId
-                    }))
                 }
-            }
-        })
-        Handler.forecastHandler(await this.getForecast())
-        this.websocket.on('message', async (response) => {
-            let data
-            try { data = JSON.parse(response) } catch { return }
-            const type = data?.type || null
-            if (type == `ack`) loader.cache.events.emit(`onAcknowledge`, data)
-            if (type == `obs_st`) { Handler.observationHandler(data); Handler.forecastHandler(await this.getForecast()) }
-            if (type == `rapid_wind`) Handler.rapidWindHandler(data)
-            if (type == `evt_strike`) Handler.lightningHandler(data)
-        })
-        this.websocket.on('error', (error: any) => {
-            Utils.warn(loader.definitions.messages.api_failed, true)
-        })
+            })
+            Handler.forecastHandler(await this.getForecast())
+            this.websocket.on('message', async (response) => {
+                let data
+                try { data = JSON.parse(response) } catch { return }
+                const type = data?.type || null
+                if (type == `ack`) loader.cache.events.emit(`onAcknowledge`, data)
+                if (type == `obs_st`) { Handler.observationHandler(data); Handler.forecastHandler(await this.getForecast()) }
+                if (type == `rapid_wind`) Handler.rapidWindHandler(data)
+                if (type == `evt_strike`) Handler.lightningHandler(data)
+            })
+            this.websocket.on('error', (error: any) => {
+                Utils.warn(loader.definitions.messages.api_failed, true)
+            })
+        } catch (error) {
+            Utils.warn(`An error occurred while starting the TempestStation client: ${error}`, true)
+            setTimeout(() => {
+                this.start(loader.settings as types.ClientSettingsTypes);
+            }, 1000);
+        }
     }
 
     /**

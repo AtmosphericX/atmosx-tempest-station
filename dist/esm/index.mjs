@@ -371,66 +371,73 @@ var TempestStation = class {
    */
   start(metadata) {
     return __async(this, null, function* () {
-      utils_default.mergeClientSettings(settings, metadata);
-      const settings2 = settings;
-      if (!(settings2 == null ? void 0 : settings2.api) || !(settings2 == null ? void 0 : settings2.deviceId)) return;
-      const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings2.api}&location_id=${settings2.deviceId}&ver=tempest-20250728`;
-      this.websocket = new packages.ws(wsUrl);
-      this.websocket.on("open", () => __async(this, null, function* () {
-        utils_default.warn(`${definitions.messages.websocket_established} @ ${settings2.deviceId}/${settings2.stationId}`, true);
-        cache.events.emit(`onConnection`);
-        if (settings2.stationId) {
-          const stationsUrl = `https://swd.weatherflow.com/swd/rest/stations/${settings2.stationId}?api_key=${settings2.api}`;
-          const responseStations = yield utils_default.createHttpRequest(stationsUrl);
-          if (!responseStations.error) {
-            const station = responseStations.message;
-            if (station && typeof station === "object" && Array.isArray(station.stations) && station.stations[0]) {
-              const s = station.stations[0];
-              this.latitude = Number(s.latitude);
-              this.longitude = Number(s.longitude);
+      try {
+        utils_default.mergeClientSettings(settings, metadata);
+        const settings2 = settings;
+        if (!(settings2 == null ? void 0 : settings2.api) || !(settings2 == null ? void 0 : settings2.deviceId)) return;
+        const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings2.api}&location_id=${settings2.deviceId}&ver=tempest-20250728`;
+        this.websocket = new packages.ws(wsUrl);
+        this.websocket.on("open", () => __async(this, null, function* () {
+          utils_default.warn(`${definitions.messages.websocket_established} @ ${settings2.deviceId}/${settings2.stationId}`, true);
+          cache.events.emit(`onConnection`);
+          if (settings2.stationId) {
+            const stationsUrl = `https://swd.weatherflow.com/swd/rest/stations/${settings2.stationId}?api_key=${settings2.api}`;
+            const responseStations = yield utils_default.createHttpRequest(stationsUrl);
+            if (!responseStations.error) {
+              const station = responseStations.message;
+              if (station && typeof station === "object" && Array.isArray(station.stations) && station.stations[0]) {
+                const s = station.stations[0];
+                this.latitude = Number(s.latitude);
+                this.longitude = Number(s.longitude);
+              }
             }
-          }
-          if (this.websocket) {
-            if (Number.isFinite(this.latitude) && Number.isFinite(this.longitude)) {
+            if (this.websocket) {
+              if (Number.isFinite(this.latitude) && Number.isFinite(this.longitude)) {
+                this.websocket.send(JSON.stringify({
+                  type: "geo_strike_listen_start",
+                  lat_min: this.latitude - 5,
+                  lat_max: this.latitude + 5,
+                  lon_min: this.longitude - 5,
+                  lon_max: this.longitude + 5
+                }));
+              }
               this.websocket.send(JSON.stringify({
-                type: "geo_strike_listen_start",
-                lat_min: this.latitude - 5,
-                lat_max: this.latitude + 5,
-                lon_min: this.longitude - 5,
-                lon_max: this.longitude + 5
+                type: "listen_start",
+                device_id: settings2.deviceId
+              }));
+              this.websocket.send(JSON.stringify({
+                type: "listen_rapid_start",
+                device_id: settings2.deviceId
               }));
             }
-            this.websocket.send(JSON.stringify({
-              type: "listen_start",
-              device_id: settings2.deviceId
-            }));
-            this.websocket.send(JSON.stringify({
-              type: "listen_rapid_start",
-              device_id: settings2.deviceId
-            }));
           }
-        }
-      }));
-      handler_default.forecastHandler(yield this.getForecast());
-      this.websocket.on("message", (response) => __async(this, null, function* () {
-        let data;
-        try {
-          data = JSON.parse(response);
-        } catch (e) {
-          return;
-        }
-        const type = (data == null ? void 0 : data.type) || null;
-        if (type == `ack`) cache.events.emit(`onAcknowledge`, data);
-        if (type == `obs_st`) {
-          handler_default.observationHandler(data);
-          handler_default.forecastHandler(yield this.getForecast());
-        }
-        if (type == `rapid_wind`) handler_default.rapidWindHandler(data);
-        if (type == `evt_strike`) handler_default.lightningHandler(data);
-      }));
-      this.websocket.on("error", (error) => {
-        utils_default.warn(definitions.messages.api_failed, true);
-      });
+        }));
+        handler_default.forecastHandler(yield this.getForecast());
+        this.websocket.on("message", (response) => __async(this, null, function* () {
+          let data;
+          try {
+            data = JSON.parse(response);
+          } catch (e) {
+            return;
+          }
+          const type = (data == null ? void 0 : data.type) || null;
+          if (type == `ack`) cache.events.emit(`onAcknowledge`, data);
+          if (type == `obs_st`) {
+            handler_default.observationHandler(data);
+            handler_default.forecastHandler(yield this.getForecast());
+          }
+          if (type == `rapid_wind`) handler_default.rapidWindHandler(data);
+          if (type == `evt_strike`) handler_default.lightningHandler(data);
+        }));
+        this.websocket.on("error", (error) => {
+          utils_default.warn(definitions.messages.api_failed, true);
+        });
+      } catch (error) {
+        utils_default.warn(`An error occurred while starting the TempestStation client: ${error}`, true);
+        setTimeout(() => {
+          this.start(settings);
+        }, 1e3);
+      }
     });
   }
   /**
