@@ -48,7 +48,6 @@ export const definitions = {
         websocket_closed: `Connection to Tempest Weather Station closed unexpectedly, attempting to reconnect...`,
         websocket_established: `Successfully connected to Tempest Weather Station.`,
         forecast_fetch_error: `Please make sure you have a valid station ID`,
-        api_failed: `Request failed. Please check your API key and device ID.`,
     },
     cardinal_direction_degrees: {
         N: [348.75, 360],

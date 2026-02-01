@@ -23,8 +23,29 @@ export class TempestStation {
     longitude: number = 0;
     websocket: any = null;
     isConnecting: boolean = false;
+    reconnectTimer: NodeJS.Timeout | null = null;
+    reconnectDelay: number = 5_000;
     constructor(metadata: types.ClientSettingsTypes) { this.start(metadata) }
     
+    /**
+     * @private
+     * @function scheduleReconnect
+     * @description
+     *     Schedules a reconnection attempt after a specified delay.
+     *
+     * @param {any} [reason]
+     */
+    private scheduleReconnect(reason?: any) {
+        if (this.reconnectTimer) return
+        if (String(reason)?.includes('429')) {
+            this.reconnectDelay = Math.min(this.reconnectDelay * 2, 60_000) 
+        }
+        this.reconnectTimer = setTimeout(() => {
+            this.reconnectTimer = null
+            this.start(loader.settings as types.ClientSettingsTypes)
+        }, this.reconnectDelay)
+    }
+
     /**
      * @function setSettings
      * @description
@@ -36,7 +57,7 @@ export class TempestStation {
      * @returns {Promise<void>}
      */
     public async setSettings(settings: types.ClientSettingsTypes) {
-        if (settings.deviceId === loader.settings.deviceId || settings.stationId === loader.settings.stationId) return;
+        if (settings.deviceId == loader.settings.deviceId && settings.stationId == loader.settings.stationId) return;
         this.stop();
         Utils.mergeClientSettings(loader.settings, settings);
         this.start(loader.settings);
@@ -72,25 +93,22 @@ export class TempestStation {
             this.isConnecting = true;
             Utils.mergeClientSettings(loader.settings, metadata);
             const settings = loader.settings as types.ClientSettingsTypes
-            if (!settings?.api || !settings?.deviceId) return
+            if (!settings?.api || !settings?.deviceId) {
+                return this.stop();
+            }
             const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings.api}` + `&location_id=${settings.deviceId}&ver=tempest-20250728`
             this.websocket = new loader.packages.ws(wsUrl)
             this.websocket.on('error', (error: any) => {
-                    this.isConnecting = false;
-                    this.websocket?.close();
-                    this.websocket = null;
-                    Utils.warn(`${loader.definitions.messages.websocket_closed} (${error})`, true)
-                    setTimeout(() => { 
-                        this.start(loader.settings as types.ClientSettingsTypes); 
-                    }, 5 * 1000);
+                this.stop();
+                Utils.warn(`${loader.definitions.messages.websocket_closed} (${error})`, true)
+                this.scheduleReconnect(error)
+                return;
             })
             this.websocket.on('open', async () => {
                 Utils.warn(`${loader.definitions.messages.websocket_established} @ ${settings.deviceId}/${settings.stationId}`, true)
-                this.isConnecting = false;
                 loader.cache.events.emit(`onConnection`)
                 if (settings.stationId) {
-                    const stationsUrl =
-                        `https://swd.weatherflow.com/swd/rest/stations/${settings.stationId}?api_key=${settings.api}`
+                    const stationsUrl = `https://swd.weatherflow.com/swd/rest/stations/${settings.stationId}?api_key=${settings.api}`
                     const responseStations = await Utils.createHttpRequest(stationsUrl)
                     if (!responseStations.error) {
                         const station = responseStations.message as Record<string, any>
@@ -117,7 +135,6 @@ export class TempestStation {
                     }
                 }
             })
-            Handler.forecastHandler(await this.getForecast())
             this.websocket.on('message', async (response) => {
                 let data
                 try { data = JSON.parse(response) } catch { return }
@@ -127,9 +144,7 @@ export class TempestStation {
                 if (type == `rapid_wind`) Handler.rapidWindHandler(data)
                 if (type == `evt_strike`) Handler.lightningHandler(data)
             })
-            this.websocket.on('error', (error: any) => {
-                Utils.warn(loader.definitions.messages.api_failed, true)
-            })
+            Handler.forecastHandler(await this.getForecast())
         } catch (error) {
             Utils.warn(`An error occurred while starting the TempestStation client: ${error}`, true)
             setTimeout(() => {
@@ -223,8 +238,10 @@ export class TempestStation {
      */
     public async stop(): Promise<void> {
         if (this.websocket) {
+            this.websocket.removeAllListeners?.()
             this.websocket.close();
             this.websocket = null;
+            this.isConnecting = false;
         }
         Utils.warn(`${loader.definitions.messages.client_stopped} @ ${loader.settings.deviceId}/${loader.settings.stationId}`, true);
     }

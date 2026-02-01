@@ -70,8 +70,7 @@ var definitions = {
     client_stopped: `Disconnected from Tempest Weather Station.`,
     websocket_closed: `Connection to Tempest Weather Station closed unexpectedly, attempting to reconnect...`,
     websocket_established: `Successfully connected to Tempest Weather Station.`,
-    forecast_fetch_error: `Please make sure you have a valid station ID`,
-    api_failed: `Request failed. Please check your API key and device ID.`
+    forecast_fetch_error: `Please make sure you have a valid station ID`
   },
   cardinal_direction_degrees: {
     N: [348.75, 360],
@@ -328,7 +327,28 @@ var TempestStation = class {
     this.longitude = 0;
     this.websocket = null;
     this.isConnecting = false;
+    this.reconnectTimer = null;
+    this.reconnectDelay = 5e3;
     this.start(metadata);
+  }
+  /**
+   * @private
+   * @function scheduleReconnect
+   * @description
+   *     Schedules a reconnection attempt after a specified delay.
+   *
+   * @param {any} [reason]
+   */
+  scheduleReconnect(reason) {
+    var _a;
+    if (this.reconnectTimer) return;
+    if ((_a = String(reason)) == null ? void 0 : _a.includes("429")) {
+      this.reconnectDelay = Math.min(this.reconnectDelay * 2, 6e4);
+    }
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.start(settings);
+    }, this.reconnectDelay);
   }
   /**
    * @function setSettings
@@ -342,7 +362,7 @@ var TempestStation = class {
    */
   setSettings(settings2) {
     return __async(this, null, function* () {
-      if (settings2.deviceId === settings.deviceId || settings2.stationId === settings.stationId) return;
+      if (settings2.deviceId == settings.deviceId && settings2.stationId == settings.stationId) return;
       this.stop();
       utils_default.mergeClientSettings(settings, settings2);
       this.start(settings);
@@ -378,22 +398,19 @@ var TempestStation = class {
         this.isConnecting = true;
         utils_default.mergeClientSettings(settings, metadata);
         const settings2 = settings;
-        if (!(settings2 == null ? void 0 : settings2.api) || !(settings2 == null ? void 0 : settings2.deviceId)) return;
+        if (!(settings2 == null ? void 0 : settings2.api) || !(settings2 == null ? void 0 : settings2.deviceId)) {
+          return this.stop();
+        }
         const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings2.api}&location_id=${settings2.deviceId}&ver=tempest-20250728`;
         this.websocket = new packages.ws(wsUrl);
         this.websocket.on("error", (error) => {
-          var _a;
-          this.isConnecting = false;
-          (_a = this.websocket) == null ? void 0 : _a.close();
-          this.websocket = null;
+          this.stop();
           utils_default.warn(`${definitions.messages.websocket_closed} (${error})`, true);
-          setTimeout(() => {
-            this.start(settings);
-          }, 5 * 1e3);
+          this.scheduleReconnect(error);
+          return;
         });
         this.websocket.on("open", () => __async(this, null, function* () {
           utils_default.warn(`${definitions.messages.websocket_established} @ ${settings2.deviceId}/${settings2.stationId}`, true);
-          this.isConnecting = false;
           cache.events.emit(`onConnection`);
           if (settings2.stationId) {
             const stationsUrl = `https://swd.weatherflow.com/swd/rest/stations/${settings2.stationId}?api_key=${settings2.api}`;
@@ -427,7 +444,6 @@ var TempestStation = class {
             }
           }
         }));
-        handler_default.forecastHandler(yield this.getForecast());
         this.websocket.on("message", (response) => __async(this, null, function* () {
           let data;
           try {
@@ -444,9 +460,7 @@ var TempestStation = class {
           if (type == `rapid_wind`) handler_default.rapidWindHandler(data);
           if (type == `evt_strike`) handler_default.lightningHandler(data);
         }));
-        this.websocket.on("error", (error) => {
-          utils_default.warn(definitions.messages.api_failed, true);
-        });
+        handler_default.forecastHandler(yield this.getForecast());
       } catch (error) {
         utils_default.warn(`An error occurred while starting the TempestStation client: ${error}`, true);
         setTimeout(() => {
@@ -532,9 +546,12 @@ var TempestStation = class {
    */
   stop() {
     return __async(this, null, function* () {
+      var _a, _b;
       if (this.websocket) {
+        (_b = (_a = this.websocket).removeAllListeners) == null ? void 0 : _b.call(_a);
         this.websocket.close();
         this.websocket = null;
+        this.isConnecting = false;
       }
       utils_default.warn(`${definitions.messages.client_stopped} @ ${settings.deviceId}/${settings.stationId}`, true);
     });
