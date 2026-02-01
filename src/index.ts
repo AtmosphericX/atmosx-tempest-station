@@ -22,6 +22,7 @@ export class TempestStation {
     latitude: number = 0;
     longitude: number = 0;
     websocket: any = null;
+    isConnecting: boolean = false;
     constructor(metadata: types.ClientSettingsTypes) { this.start(metadata) }
     
     /**
@@ -67,13 +68,25 @@ export class TempestStation {
      */
     public async start(metadata: types.ClientSettingsTypes): Promise<void> {
         try {
+            if (this.isConnecting) return;
+            this.isConnecting = true;
             Utils.mergeClientSettings(loader.settings, metadata);
             const settings = loader.settings as types.ClientSettingsTypes
             if (!settings?.api || !settings?.deviceId) return
             const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings.api}` + `&location_id=${settings.deviceId}&ver=tempest-20250728`
             this.websocket = new loader.packages.ws(wsUrl)
+            this.websocket.on('error', (error: any) => {
+                    this.isConnecting = false;
+                    this.websocket?.close();
+                    this.websocket = null;
+                    Utils.warn(`${loader.definitions.messages.websocket_closed} (${error})`, true)
+                    setTimeout(() => { 
+                        this.start(loader.settings as types.ClientSettingsTypes); 
+                    }, 5 * 1000);
+            })
             this.websocket.on('open', async () => {
                 Utils.warn(`${loader.definitions.messages.websocket_established} @ ${settings.deviceId}/${settings.stationId}`, true)
+                this.isConnecting = false;
                 loader.cache.events.emit(`onConnection`)
                 if (settings.stationId) {
                     const stationsUrl =

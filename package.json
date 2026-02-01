@@ -11,7 +11,7 @@
 	},
 	"scripts": {
 		"start": "cd ./test && node ./index.js",
-		"build:tsup": "tsup && cd ./test && node ./index.js",
+    	"build": "tsup && cd ./test && node ./index.js",
 		"publish": "tsup && npm publish --access public",
 		"publish-beta": "tsup && npm publish --tag beta --access public"
 	},

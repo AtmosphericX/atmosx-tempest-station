@@ -101,6 +101,7 @@ var settings = {
 var definitions = {
   messages: {
     client_stopped: `Disconnected from Tempest Weather Station.`,
+    websocket_closed: `Connection to Tempest Weather Station closed unexpectedly, attempting to reconnect...`,
     websocket_established: `Successfully connected to Tempest Weather Station.`,
     forecast_fetch_error: `Please make sure you have a valid station ID`,
     api_failed: `Request failed. Please check your API key and device ID.`
@@ -359,6 +360,7 @@ var TempestStation = class {
     this.latitude = 0;
     this.longitude = 0;
     this.websocket = null;
+    this.isConnecting = false;
     this.start(metadata);
   }
   /**
@@ -405,13 +407,26 @@ var TempestStation = class {
   start(metadata) {
     return __async(this, null, function* () {
       try {
+        if (this.isConnecting) return;
+        this.isConnecting = true;
         utils_default.mergeClientSettings(settings, metadata);
         const settings2 = settings;
         if (!(settings2 == null ? void 0 : settings2.api) || !(settings2 == null ? void 0 : settings2.deviceId)) return;
         const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings2.api}&location_id=${settings2.deviceId}&ver=tempest-20250728`;
         this.websocket = new packages.ws(wsUrl);
+        this.websocket.on("error", (error) => {
+          var _a;
+          this.isConnecting = false;
+          (_a = this.websocket) == null ? void 0 : _a.close();
+          this.websocket = null;
+          utils_default.warn(`${definitions.messages.websocket_closed} (${error})`, true);
+          setTimeout(() => {
+            this.start(settings);
+          }, 5 * 1e3);
+        });
         this.websocket.on("open", () => __async(this, null, function* () {
           utils_default.warn(`${definitions.messages.websocket_established} @ ${settings2.deviceId}/${settings2.stationId}`, true);
+          this.isConnecting = false;
           cache.events.emit(`onConnection`);
           if (settings2.stationId) {
             const stationsUrl = `https://swd.weatherflow.com/swd/rest/stations/${settings2.stationId}?api_key=${settings2.api}`;
