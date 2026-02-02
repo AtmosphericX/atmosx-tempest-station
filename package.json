@@ -31,14 +31,14 @@
 	},
 	"homepage": "https://github.com/AtmosphericX/atmosx-tempest-station#readme",
 	"dependencies": {
-		"axios": "latest",
-		"croner": "latest",
-		"typescript": "latest",
-		"crypto-js": "latest",
-		"ws": "latest"
+		"axios": "1.13.3",
+		"croner": "9.1.0",
+		"typescript": "5.9.3",
+		"crypto-js": "4.2.0",
+		"ws": "8.19.0"
 	},
 	"devDependencies": {
-		"@types/node": "latest",
-		"tsup": "latest"
+		"@types/node": "25.2.0",
+		"tsup": "8.5.1"
 	}
 }
