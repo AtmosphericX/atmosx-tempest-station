@@ -92,8 +92,8 @@ export class TempestStation {
             this.isConnecting = true;
             Utils.mergeClientSettings(loader.settings, metadata);
             const settings = loader.settings as types.ClientSettingsTypes
-            if (!settings?.api || !settings?.deviceId) {
-                return this.stop();
+            if (!settings?.api || !settings?.deviceId || settings?.stationId == 0 && settings?.deviceId == 0) { 
+                return Utils.warn(`${loader.definitions.messages.websocket_closed}`, true)
             }
             const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings.api}` + `&location_id=${settings.deviceId}&ver=tempest-20250728`
             this.websocket = new loader.packages.ws(wsUrl)
@@ -241,8 +241,8 @@ export class TempestStation {
             this.websocket.removeAllListeners?.()
             this.websocket.close();
             this.websocket = null;
-            this.isConnecting = false;
         }
+        this.isConnecting = false;
         Utils.warn(`${loader.definitions.messages.client_stopped} @ ${loader.settings.deviceId}/${loader.settings.stationId}`, true);
     }
 }

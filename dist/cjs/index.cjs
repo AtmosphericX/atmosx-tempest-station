@@ -430,8 +430,8 @@ var TempestStation = class {
         this.isConnecting = true;
         utils_default.mergeClientSettings(settings, metadata);
         const settings2 = settings;
-        if (!(settings2 == null ? void 0 : settings2.api) || !(settings2 == null ? void 0 : settings2.deviceId)) {
-          return this.stop();
+        if (!(settings2 == null ? void 0 : settings2.api) || !(settings2 == null ? void 0 : settings2.deviceId) || (settings2 == null ? void 0 : settings2.stationId) == 0 && (settings2 == null ? void 0 : settings2.deviceId) == 0) {
+          return utils_default.warn(`${definitions.messages.websocket_closed}`, true);
         }
         const wsUrl = `wss://ws.weatherflow.com/swd/data?api_key=${settings2.api}&location_id=${settings2.deviceId}&ver=tempest-20250728`;
         this.websocket = new packages.ws(wsUrl);
@@ -584,8 +584,8 @@ var TempestStation = class {
         (_b = (_a = this.websocket).removeAllListeners) == null ? void 0 : _b.call(_a);
         this.websocket.close();
         this.websocket = null;
-        this.isConnecting = false;
       }
+      this.isConnecting = false;
       utils_default.warn(`${definitions.messages.client_stopped} @ ${settings.deviceId}/${settings.stationId}`, true);
     });
   }
