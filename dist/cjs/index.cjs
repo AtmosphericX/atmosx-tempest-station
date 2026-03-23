@@ -397,8 +397,7 @@ var TempestStation = class {
     return __async(this, null, function* () {
       if (settings2.deviceId == settings.deviceId && settings2.stationId == settings.stationId) return;
       this.stop();
-      utils_default.mergeClientSettings(settings, settings2);
-      this.start(settings);
+      this.start(settings2);
     });
   }
   /**
@@ -496,6 +495,7 @@ var TempestStation = class {
         handler_default.forecastHandler(yield this.getForecast());
       } catch (error) {
         utils_default.warn(`An error occurred while starting the TempestStation client: ${error}`, true);
+        this.stop();
         setTimeout(() => {
           this.start(settings);
         }, 1e3);

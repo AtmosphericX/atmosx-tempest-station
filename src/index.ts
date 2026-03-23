@@ -59,8 +59,7 @@ export class TempestStation {
     public async setSettings(settings: types.ClientSettingsTypes) {
         if (settings.deviceId == loader.settings.deviceId && settings.stationId == loader.settings.stationId) return;
         this.stop();
-        Utils.mergeClientSettings(loader.settings, settings);
-        this.start(loader.settings);
+        this.start(settings);
     }
 
     /**
@@ -147,6 +146,7 @@ export class TempestStation {
             Handler.forecastHandler(await this.getForecast())
         } catch (error) {
             Utils.warn(`An error occurred while starting the TempestStation client: ${error}`, true)
+            this.stop()
             setTimeout(() => {
                 this.start(loader.settings as types.ClientSettingsTypes);
             }, 1000);
