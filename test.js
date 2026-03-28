@@ -1,4 +1,4 @@
-const {TempestStation} = require(`atmosx-tempest-station`);
+const {TempestStation} = require(`@atmosx/tempest-station-wrapper`);
 
 const tempest = new TempestStation({
     api: "api_key_here",

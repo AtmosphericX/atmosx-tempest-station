@@ -4,23 +4,23 @@
   	<p align = "center">This repository provides a robust solution for interacting with the Tempest Weather Station. It enables seamless data retrieval using the device ID, including identifying the nearest station ID. With this project, you can access a wide range of weather related data such as temperature, humidity, pressure, wind gusts, and more.</small></p>
   	<p align = "center">Documentation written by @k3yomi</p>
 	<div align="center" style="border: none;">
-		<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/k3yomi/atmosx-tempest-station">
-		<img alt="GitHub forks" src="https://img.shields.io/github/forks/k3yomi/atmosx-tempest-station">
-		<img alt="GitHub issues" src="https://img.shields.io/github/issues/k3yomi/atmosx-tempest-station">
-		<img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/k3yomi/atmosx-tempest-station">
+		<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/AtmosphericX/tempest-station-wrapper">
+		<img alt="GitHub forks" src="https://img.shields.io/github/forks/AtmosphericX/tempest-station-wrapper">
+		<img alt="GitHub issues" src="https://img.shields.io/github/issues/AtmosphericX/tempest-station-wrapper">
+		<img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/AtmosphericX/tempest-station-wrapper">
 	</div>
 </div>
 
 
 ## Installation (NPM)
 ```bash
-npm install atmosx-tempest-station
+npm install @atmosx/tempest-station-wrapper
 ```
 
 ## Example Usage
 ```js
-const { TempestStation } = require(`atmosx-tempest-station`); // CJS
-import { TempestStation } from `atmosx-tempest-station`; // ESM
+const { TempestStation } = require(`@atmosx/tempest-station-wrapper`); // CJS
+import { TempestStation } from `@atmosx/tempest-station-wrapper`; // ESM
 
 const tempest = new TempestStation({
     api: "api_key_here",
