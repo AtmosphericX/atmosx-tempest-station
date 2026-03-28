@@ -1,13 +1,13 @@
 {
 	"name": "atmosx-tempest-station",
-	"version": "1.1.018",
+	"version": "1.1.019",
 	"description": "AtmosphericX Tempest Weather Station Polling - Built for standalone and Project AtmosphericX Integration.",
 	"main": "dist/cjs/index.cjs",
 	"module": "dist/esm/index.mjs",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/AtmosphericX/atmosx-tempest-station.git",
-		"branch": "beta"
+		"branch": "main"
 	},
 	"scripts": {
 		"start": "cd ./test && node ./index.js",

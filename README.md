@@ -94,9 +94,17 @@ Stops the WebSocket connection to the Tempest Weather Station API.
 tempest.stop();
 ```
 
+
 ## References
-- [AtmosphericX](https://github.com/k3yomi/AtmosphericX)
-- [Tempest Weather Station](https://shop.tempest.earth/products/tempest)
+[Tempest Weather Station](https://shop.tempest.earth/products/tempest) |
+[Documentation](https://atmosphericx.scriptkitty.cafe/documentation) |
+[Discord Server](https://atmosphericx-discord.scriptkitty.cafe) |
+[Project Board](https://github.com/users/AtmosphericX/projects/2) |\
+[Code of Conduct](/CODE_OF_CONDUCT.md) |
+[Contributing](/CONTRIBUTING.md) |
+[License](/LICENSE) | 
+[Security](/SECURITY.md) | 
+[Changelogs](/CHANGELOGS.md) |
 
 ## Acknowledgements
 - [k3yomi](https://github.com/k3yomi)
